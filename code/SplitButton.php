@@ -120,17 +120,17 @@ class SplitButton extends TabSet
     /**
      * @inheritdoc
      */
-    public function insertBefore($field, $insertBefore)
+    public function insertBefore($insertBefore, $field, $appendIfMissing = true)
     {
-        return $this->tab->insertBefore($field, $insertBefore);
+        return $this->tab->insertBefore($insertBefore, $field, $appendIfMissing);
     }
 
     /**
      * @inheritdoc
      */
-    public function insertAfter($field, $insertBefore)
+    public function insertAfter($insertAfter, $field, $appendIfMissing = true)
     {
-        return $this->tab->insertAfter($field, $insertBefore);
+        return $this->tab->insertAfter($insertAfter, $field, $appendIfMissing);
     }
 
     /**
@@ -144,8 +144,8 @@ class SplitButton extends TabSet
     /**
      * @inheritdoc
      */
-    public function replaceField($fieldName, $newField)
+    public function replaceField($fieldName, $newField, $dataFieldOnly = true)
     {
-        return $this->tab->replaceField($fieldName, $newField);
+        return $this->tab->replaceField($fieldName, $newField, $dataFieldOnly);
     }
 }
