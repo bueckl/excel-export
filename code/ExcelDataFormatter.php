@@ -1,5 +1,13 @@
 <?php
 
+use SilverStripe\View\ViewableData;
+use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\DataObjectInterface;
+use SilverStripe\ORM\SS_List;
+use SilverStripe\Control\Controller;
+use SilverStripe\View\SSViewer;
+use SilverStripe\ORM\DataObject;
+
 /**
  * ExcelDataFormatter provides a DataFormatter allowing an {@link SS_link} of
  * {@link DataObjectInterface} to be exported to be to Excel 2007 Spreadsheet
@@ -12,23 +20,7 @@
  * @license MIT
  * @package silverstripe-excel-export
  */
-
-namespace ExcelExport;
-
-use PhpOffice\PhpSpreadsheet\Cell\Cell;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use SilverStripe\Control\Controller;
-use SilverStripe\ORM\ArrayList;
-use SilverStripe\ORM\DataObjectInterface;
-use SilverStripe\ORM\SS_List;
-use SilverStripe\Security\Member;
-use SilverStripe\Security\Security;
-use SilverStripe\View\SSViewer;
-
-class ExcelDataFormatter extends DataFormatter
+class ExcelDataFormatter extends ViewableData
 {
 
 
@@ -101,23 +93,27 @@ class ExcelDataFormatter extends DataFormatter
         // if custom fields are specified, only select these
         if(is_array($this->customFields)) {
             foreach($this->customFields as $fieldName) {
-                // @todo Possible security risk by making methods accessible - implement field-level security
-                if($obj->hasField($fieldName) || $obj->hasMethod("get{$fieldName}")) {
-                    $dbFields[$fieldName] = $fieldName;
+                if ($obj instanceof DataObject) {
+                    if($obj->hasField($fieldName) || $obj->hasMethod("get{$fieldName}")) {
+                        $dbFields[$fieldName] = $fieldName;
+                    }
                 }
             }
-        } elseif ($obj->hasMethod('getExcelExportFields')) {
+        } elseif ($obj instanceof DataObject && $obj->hasMethod('getExcelExportFields')) {
             $dbFields = $obj->getExcelExportFields();
         } else {
             // by default, all database fields are selected
-            $dbFields = $obj->inheritedDatabaseFields();
+            if ($obj instanceof DataObject) {
+                $dbFields = $obj->inheritedDatabaseFields();
+            }
         }
 
         if(is_array($this->customAddFields)) {
             foreach($this->customAddFields as $fieldName) {
-                // @todo Possible security risk by making methods accessible - implement field-level security
-                if($obj->hasField($fieldName) || $obj->hasMethod("get{$fieldName}")) {
-                    $dbFields[$fieldName] = $fieldName;
+                if ($obj instanceof DataObject) {
+                    if($obj->hasField($fieldName) || $obj->hasMethod("get{$fieldName}")) {
+                        $dbFields[$fieldName] = $fieldName;
+                    }
                 }
             }
         }
@@ -133,9 +129,9 @@ class ExcelDataFormatter extends DataFormatter
     }
 
     /**
-     * Generate a {@link Spreadsheet} for the provided DataObject List
+     * Generate a {@link PHPExcel} for the provided DataObject List
      * @param  SS_List $set List of DataObjects
-     * @return Spreadsheet
+     * @return PHPExcel
      */
     public function getPhpExcelObject(SS_List $set)
     {
@@ -167,7 +163,7 @@ class ExcelDataFormatter extends DataFormatter
             for ($i = 0; $i < $col; $i++) {
                 $sheet
                     ->getColumnDimension(
-                        Coordinate::stringFromColumnIndex($i)
+                        PHPExcel_Cell::stringFromColumnIndex($i)
                     )
                     ->setAutoSize(true);
             }
@@ -181,20 +177,20 @@ class ExcelDataFormatter extends DataFormatter
      * Initialize a new {@link PHPExcel} object based on the provided
      * {@link DataObjectInterface} interface.
      * @param  DataObjectInterface $do
-     * @return Spreadsheet
+     * @return PHPExcel
      */
     protected function setupExcel(DataObjectInterface $do)
     {
         // Try to get the current user
-        $member = Security::getCurrentUser();
+        $member = Member::currentUser();
         $creator = $member ? $member->getName() : '';
 
         // Get information about the current Model Class
-        $singular = $do ? $do->i18n_singular_name() : '';
-        $plural = $do ? $do->i18n_plural_name() : '';
+        $singular = $do instanceof DataObject ? $do->i18n_singular_name() : '';
+        $plural = $do instanceof DataObject ? $do->i18n_plural_name() : '';
 
         // Create the Spread sheet
-        $excel = new Spreadsheet();
+        $excel = new PHPExcel();
 
         $excel->getProperties()
             ->setCreator($creator)
@@ -221,12 +217,12 @@ class ExcelDataFormatter extends DataFormatter
 
     /**
      * Add an header row to a {@link PHPExcel_Worksheet}.
-     * @param  Worksheet $sheet
+     * @param  PHPExcel_Worksheet $sheet
      * @param  array              $fields List of fields
      * @param  DataObjectInterface  $do
-     * @return Worksheet
+     * @return PHPExcel_Worksheet
      */
-    protected function headerRow(Worksheet &$sheet, array $fields, DataObjectInterface $do)
+    protected function headerRow(PHPExcel_Worksheet &$sheet, array $fields, DataObjectInterface $do)
     {
         // Counter
         $row = 1;
@@ -243,7 +239,7 @@ class ExcelDataFormatter extends DataFormatter
 
         // Get the last column
         $col--;
-        $endcol = Coordinate::stringFromColumnIndex($col);
+        $endcol = PHPExcel_Cell::stringFromColumnIndex($col);
 
         // Set Autofilters and Header row style
         $sheet->setAutoFilter("A1:{$endcol}1");
@@ -256,13 +252,13 @@ class ExcelDataFormatter extends DataFormatter
     /**
      * Add a new row to a {@link PHPExcel_Worksheet} based of a
      * {@link DataObjectInterface}
-     * @param Worksheet  $sheet
+     * @param PHPExcel_Worksheet  $sheet
      * @param DataObjectInterface $item
      * @param array               $fields List of fields to include
-     * @return Worksheet
+     * @return PHPExcel_Worksheet
      */
     protected function addRow(
-        Worksheet &$sheet,
+        PHPExcel_Worksheet &$sheet,
         DataObjectInterface $item,
         array $fields
     ) {
@@ -270,11 +266,15 @@ class ExcelDataFormatter extends DataFormatter
         $col = 0;
 
         foreach ($fields as $field => $type) {
-            if ($item->hasField($field) || $item->hasMethod("get{$field}")) {
+            if ($item instanceof DataObject && ($item->hasField($field) || $item->hasMethod("get{$field}"))) {
                 $value = $item->$field;
             } else {
-                $viewer = SSViewer::fromString('$' . $field . '.RAW');
-                $value = $item->renderWith($viewer, true);
+                if ($item instanceof DataObject) {
+                    $viewer = SSViewer::fromString('$' . $field . '.RAW');
+                    $value = $item->renderWith($viewer, true);
+                } else {
+                    $value = '';
+                }
             }
             $sheet->setCellValueByColumnAndRow($col, $row, $value);
             $col++;
@@ -286,15 +286,15 @@ class ExcelDataFormatter extends DataFormatter
     /**
      * Generate a string representation of an {@link PHPExcel} spread sheet
      * suitable for output to the browser.
-     * @param  Spreadsheet $excel
+     * @param  PHPExcel $excel
      * @param  string   $format Format to use when outputting the spreadsheet.
      * Must be compatible with the format expected by
      * {@link PHPExcel_IOFactory::createWriter}.
      * @return string
      */
-    protected function getFileData(Spreadsheet $excel, $format)
+    protected function getFileData(PHPExcel $excel, $format)
     {
-        $writer = IOFactory::createWriter($excel, $format);
+        $writer = PHPExcel_IOFactory::createWriter($excel, $format);
         ob_start();
         $writer->save('php://output');
         $fileData = ob_get_clean();
