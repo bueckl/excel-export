@@ -115,10 +115,10 @@ class GridFieldExcelExportButton implements
      */
     public function handleAction(
         GridField $gridField,
-        string $actionName,
+        $actionName,
         $arguments,
         $data
-    ): bool {
+    ) {
         if ($actionName == 'xlsxexport') {
             $this->handleXlsx($gridField);
             return true;
