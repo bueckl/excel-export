@@ -1,5 +1,10 @@
 <?php
 
+use SilverStripe\Forms\TabSet;
+use SilverStripe\Forms\Tab;
+use SilverStripe\Forms\FormField;
+use SilverStripe\View\Requirements;
+
 /**
  * Simple extension of {@link TabSet} for displaying a split button. This is
  * based off the action-menu logic used by SilverStripe for the _More options_
@@ -9,14 +14,6 @@
  * @license MIT
  * @package silverstripe-excel-export
  */
-
-namespace ExcelExport;
-
-use SilverStripe\Forms\FormField;
-use SilverStripe\Forms\Tab;
-use SilverStripe\Forms\TabSet;
-use SilverStripe\View\Requirements;
-
 class SplitButton extends TabSet
 {
 
@@ -64,7 +61,7 @@ class SplitButton extends TabSet
                 // Make sure we only add Form Fields to our tab.
                 $isValidArg =
                     (is_object($button) &&
-                        !($button instanceof FormField));
+                    !($button instanceof FormField));
                 if (!$isValidArg) {
                     user_error(
                         'SplitButton::__construct(): Parameter not a valid FormField instance',
@@ -123,17 +120,17 @@ class SplitButton extends TabSet
     /**
      * @inheritdoc
      */
-    public function insertBefore($insertBefore, $field, $appendIfMissing = true)
+    public function insertBefore($field, $insertBefore)
     {
-        return $this->tab->insertBefore($insertBefore, $field);
+        return $this->tab->insertBefore($field, $insertBefore);
     }
 
     /**
      * @inheritdoc
      */
-    public function insertAfter($insertAfter, $field, $appendIfMissing = true)
+    public function insertAfter($field, $insertBefore)
     {
-        return $this->tab->insertAfter($insertAfter, $field);
+        return $this->tab->insertAfter($field, $insertBefore);
     }
 
     /**
@@ -147,7 +144,7 @@ class SplitButton extends TabSet
     /**
      * @inheritdoc
      */
-    public function replaceField($fieldName, $newField, $dataFieldOnly = true)
+    public function replaceField($fieldName, $newField)
     {
         return $this->tab->replaceField($fieldName, $newField);
     }
