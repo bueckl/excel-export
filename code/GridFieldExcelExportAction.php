@@ -1,22 +1,18 @@
 <?php
 
-/**
- * Gridfield component that can be added to a Gridfield to allow a user to export a single DataObject to Excel.
- *
- * Based of {@link GridFieldDeleteAction}.
- */
-
-namespace ExcelExport;
-
-
-use SilverStripe\Control\Controller;
 use SilverStripe\Forms\GridField\GridField;
-use SilverStripe\Forms\GridField\GridField_ActionProvider;
-use SilverStripe\Forms\GridField\GridField_ColumnProvider;
 use SilverStripe\Forms\GridField\GridField_FormAction;
+use SilverStripe\Forms\GridField\GridField_ColumnProvider;
+use SilverStripe\Forms\GridField\GridField_ActionProvider;
+use SilverStripe\Control\Controller;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\ValidationException;
 
+/**
+ * Gridfield component that can be added to a Gridfield to allow a user to export a single DataObject to Excel.
+ *
+ * Based off {@link GridFieldDeleteAction}.
+ */
 class GridFieldExcelExportAction implements GridField_ColumnProvider, GridField_ActionProvider {
 
     /**
@@ -26,14 +22,13 @@ class GridFieldExcelExportAction implements GridField_ColumnProvider, GridField_
     protected $exportType;
 
     /**
-     * Whatever to override the default $useFieldLabelsAsHeaders value for the DataFormatter.
+     * Whether to override the default $useFieldLabelsAsHeaders value for the DataFormatter.
      * @var bool
      */
     protected $useLabelsAsHeaders = null;
 
-
     /**
-     * Instanciate a new GridFieldExcelExportAction
+     * Instantiate a new GridFieldExcelExportAction
      * @param string $exportType The type of file we will be exporting. Defaults to 'xlsx', but 'csv' and 'xls' are also
      * acceptable.
      */
@@ -109,7 +104,7 @@ class GridFieldExcelExportAction implements GridField_ColumnProvider, GridField_
         if(!$record->canView()) return;
 
         $field = GridField_FormAction::create($gridField, 'ExportSingle'.$record->ID, false,
-            "exportsingle", array('RecordID' => $record->ID))
+                "exportsingle", array('RecordID' => $record->ID))
             ->addExtraClass('gridfield-button-export-single no-ajax')
             ->setAttribute('title', _t('firebrandhq.EXCELEXPORT', "Export"))
             ->setAttribute('data-icon', 'download-csv');
@@ -128,12 +123,12 @@ class GridFieldExcelExportAction implements GridField_ColumnProvider, GridField_
     public function handleAction(GridField $gridField, $actionName, $arguments, $data) {
         if($actionName == 'exportsingle') {
             // Get the item
-            $item = $gridField->getList()->byID($arguments['RecordID']);
+            $item = $gridField->getList()->filter('ID', $arguments['RecordID'])->first();
             if(!$item) {
                 return;
             }
 
-            // Make sure th current user is authorised to view the item.
+            // Make sure the current user is authorised to view the item.
             if (!$item->canView()) {
                 throw new ValidationException(
                     _t('firebrandhq.EXCELEXPORT', "Can not view record"),0);
