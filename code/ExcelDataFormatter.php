@@ -182,6 +182,7 @@ class ExcelDataFormatter extends ViewableData
     protected function setupExcel(DataObjectInterface $do)
     {
         // Try to get the current user
+        // Testing
         $member = Member::currentUser();
         $creator = $member ? $member->getName() : '';
 
