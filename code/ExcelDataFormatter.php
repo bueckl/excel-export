@@ -7,7 +7,7 @@ use SilverStripe\ORM\SS_List;
 use SilverStripe\Control\Controller;
 use SilverStripe\View\SSViewer;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\Security\Member;
+use SilverStripe\Security\Security;
 
 /**
  * ExcelDataFormatter provides a DataFormatter allowing an {@link SS_link} of
@@ -182,9 +182,9 @@ class ExcelDataFormatter extends ViewableData
      */
     protected function setupExcel(DataObjectInterface $do)
     {
-        // Try to get the current user
-        // Testing
-        $member = Member::currentUser();
+        
+        
+        $member =  Security::getCurrentUser();
         $creator = $member ? $member->getName() : '';
 
         // Get information about the current Model Class
