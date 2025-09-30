@@ -7,6 +7,7 @@ use SilverStripe\ORM\SS_List;
 use SilverStripe\Control\Controller;
 use SilverStripe\View\SSViewer;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\Security\Member;
 
 /**
  * ExcelDataFormatter provides a DataFormatter allowing an {@link SS_link} of
