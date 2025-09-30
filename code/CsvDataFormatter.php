@@ -39,7 +39,7 @@ class CsvDataFormatter extends ExcelDataFormatter
     {
         $this->setHeader();
 
-        $excel = $this->getPhpExcelObject($set);
+        $excel = $this->createSpreadsheet($set);
 
         $fileData = $this->getFileData($excel, 'CSV');
 

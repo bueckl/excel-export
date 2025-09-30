@@ -8,6 +8,17 @@ use SilverStripe\Control\Controller;
 use SilverStripe\View\SSViewer;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Security;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use PhpOffice\PhpSpreadsheet\Calculation\Functions;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 /**
  * ExcelDataFormatter provides a DataFormatter allowing an {@link SS_link} of
@@ -15,7 +26,7 @@ use SilverStripe\Security\Security;
  * (XLSX).
  *
  * This class can be extended to export to other format supported by
- * {@link https://github.com/PHPOffice/PHPExcel PHPExcel}.
+ * {@link https://github.com/PHPOffice/PhpSpreadsheet PhpSpreadsheet}.
  *
  * @author Firebrand <hello@firebrand.nz>
  * @license MIT
@@ -68,9 +79,9 @@ class ExcelDataFormatter extends ViewableData
     {
         $this->setHeader();
 
-        $excel = $this->getPhpExcelObject($set);
+        $excel = $this->createSpreadsheet($set);
 
-        $fileData = $this->getFileData($excel, 'Excel2007');
+        $fileData = $this->getFileData($excel, 'Xlsx');
 
         return $fileData;
     }
@@ -130,11 +141,11 @@ class ExcelDataFormatter extends ViewableData
     }
 
     /**
-     * Generate a {@link PHPExcel} for the provided DataObject List
+     * Generate a {@link Spreadsheet} for the provided DataObject List
      * @param  SS_List $set List of DataObjects
-     * @return PHPExcel
+     * @return Spreadsheet
      */
-    public function getPhpExcelObject(SS_List $set)
+    public function createSpreadsheet(SS_List $set)
     {
         // Get the first object. We'll need it to know what type of objects we
         // are dealing with
@@ -164,7 +175,7 @@ class ExcelDataFormatter extends ViewableData
             for ($i = 0; $i < $col; $i++) {
                 $sheet
                     ->getColumnDimension(
-                        PHPExcel_Cell::stringFromColumnIndex($i)
+                        Coordinate::stringFromColumnIndex($i)
                     )
                     ->setAutoSize(true);
             }
@@ -175,10 +186,10 @@ class ExcelDataFormatter extends ViewableData
     }
 
     /**
-     * Initialize a new {@link PHPExcel} object based on the provided
+     * Initialize a new {@link Spreadsheet} object based on the provided
      * {@link DataObjectInterface} interface.
      * @param  DataObjectInterface $do
-     * @return PHPExcel
+     * @return Spreadsheet
      */
     protected function setupExcel(DataObjectInterface $do)
     {
@@ -192,7 +203,7 @@ class ExcelDataFormatter extends ViewableData
         $plural = $do instanceof DataObject ? $do->i18n_plural_name() : '';
 
         // Create the Spread sheet
-        $excel = new PHPExcel();
+        $excel = new Spreadsheet();
 
         $excel->getProperties()
             ->setCreator($creator)
@@ -218,13 +229,13 @@ class ExcelDataFormatter extends ViewableData
     }
 
     /**
-     * Add an header row to a {@link PHPExcel_Worksheet}.
-     * @param  PHPExcel_Worksheet $sheet
+     * Add an header row to a {@link Worksheet}.
+     * @param  Worksheet $sheet
      * @param  array              $fields List of fields
      * @param  DataObjectInterface  $do
-     * @return PHPExcel_Worksheet
+     * @return Worksheet
      */
-    protected function headerRow(PHPExcel_Worksheet &$sheet, array $fields, DataObjectInterface $do)
+    protected function headerRow(Worksheet &$sheet, array $fields, DataObjectInterface $do)
     {
         // Counter
         $row = 1;
@@ -234,14 +245,14 @@ class ExcelDataFormatter extends ViewableData
 
         // Add each field to the first row
         foreach ($fields as $field => $type) {
-            $header = $useLabelsAsHeaders ? $do->fieldLabel($field) : $field;
+            $header = $useLabelsAsHeaders && method_exists($do, 'fieldLabel') ? $do->fieldLabel($field) : $field;
             $sheet->setCellValueByColumnAndRow($col, $row, $header);
             $col++;
         }
 
         // Get the last column
         $col--;
-        $endcol = PHPExcel_Cell::stringFromColumnIndex($col);
+        $endcol = Coordinate::stringFromColumnIndex($col);
 
         // Set Autofilters and Header row style
         $sheet->setAutoFilter("A1:{$endcol}1");
@@ -252,15 +263,15 @@ class ExcelDataFormatter extends ViewableData
     }
 
     /**
-     * Add a new row to a {@link PHPExcel_Worksheet} based of a
+     * Add a new row to a {@link Worksheet} based of a
      * {@link DataObjectInterface}
-     * @param PHPExcel_Worksheet  $sheet
+     * @param Worksheet  $sheet
      * @param DataObjectInterface $item
      * @param array               $fields List of fields to include
-     * @return PHPExcel_Worksheet
+     * @return Worksheet
      */
     protected function addRow(
-        PHPExcel_Worksheet &$sheet,
+        Worksheet &$sheet,
         DataObjectInterface $item,
         array $fields
     ) {
@@ -286,17 +297,17 @@ class ExcelDataFormatter extends ViewableData
     }
 
     /**
-     * Generate a string representation of an {@link PHPExcel} spread sheet
+     * Generate a string representation of an {@link Spreadsheet} spread sheet
      * suitable for output to the browser.
-     * @param  PHPExcel $excel
+     * @param  Spreadsheet $excel
      * @param  string   $format Format to use when outputting the spreadsheet.
      * Must be compatible with the format expected by
-     * {@link PHPExcel_IOFactory::createWriter}.
+     * {@link IOFactory::createWriter}.
      * @return string
      */
-    protected function getFileData(PHPExcel $excel, $format)
+    protected function getFileData(Spreadsheet $excel, $format)
     {
-        $writer = PHPExcel_IOFactory::createWriter($excel, $format);
+        $writer = IOFactory::createWriter($excel, $format);
         ob_start();
         $writer->save('php://output');
         $fileData = ob_get_clean();
